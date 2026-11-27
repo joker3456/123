@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8f6f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="宝宝喂奶记录">
+  <title>宝宝喂奶记录</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #232f29;
+      background: #f8f6f1;
+      --muted: #57635b;
+      --green: #163e32;
+      --feed: #e5eee4;
+      --diaper: #f6e8db;
+      --sleep: #ebe7f3;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at 50% 0, #fffdf8, transparent 34rem); }
+    button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    button:focus-visible { outline: 3px solid #326b55; outline-offset: 3px; }
+    .app {
+      max-width: 46rem;
+      margin: auto;
+      padding: 2.75rem max(1.25rem, env(safe-area-inset-right))
+        max(2.5rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
+      padding-top: max(2.75rem, calc(env(safe-area-inset-top) + 1rem));
+    }
+    .masthead, .history-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .masthead { margin: 0 0 1.4rem; }
+    .brand { display: flex; align-items: center; gap: .75rem; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 3rem;
+      height: 3rem;
+      border-radius: 1rem;
+      background: #e5eee4;
+      font-size: 1.5rem;
+    }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: clamp(1.25rem, 4.9vw, 1.75rem); font-weight: 750; line-height: 1.25; }
+    .date { color: var(--muted); font-size: .875rem; white-space: nowrap; }
+    .summary {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 1rem;
+      padding: 1.75rem 1.9rem;
+      min-height: 12.25rem;
+      border-radius: 1.5rem;
+      color: #fffdf4;
+      background: linear-gradient(120deg, var(--green) 18%, #23523f 100%);
+      box-shadow: 0 10px 30px #163e321c;
+    }
+    .summary::before, .summary::after {
+      position: absolute;
+      z-index: -1;
+      pointer-events: none;
+      content: "";
+      width: 15rem;
+      aspect-ratio: 1;
+      border: 1px solid #c7e4b42b;
+      border-radius: 44%;
+      transform: rotate(-26deg);
+      inset: -8.75rem -1rem auto auto;
+    }
+    .summary::after { width: 19rem; inset: -9.75rem -3.5rem auto auto; }
+    .summary-label { color: #e3eddb; font-size: .9rem; line-height: 1.45; }
+    .elapsed { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .33em; row-gap: .1em; margin-top: .5rem; font-size: clamp(1.9rem, 6.35vw, 3.5rem); font-weight: 730; letter-spacing: -.055em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+    .elapsed-part { white-space: nowrap; }
+    .elapsed-unit { margin-left: .22em; font-size: .4em; font-weight: 600; letter-spacing: 0; }
+    .elapsed-message { font-size: .58em; letter-spacing: 0; }
+    .last-feed { min-height: 1.3em; margin-top: .75rem; color: #dbe8d7; font-size: .875rem; }
+    .count { align-self: center; padding: .7rem .9rem; border: 1px solid #ecf4df30; border-radius: 1rem; background: #edf5dd10; text-align: center; white-space: nowrap; }
+    .count-value { display: block; margin-top: .25rem; font-size: clamp(1.75rem, 4vw, 2.25rem); font-weight: 730; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .count-value small { margin-left: .2em; font-size: .43em; font-weight: 600; }
+    .actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin: 1rem 0 1.9rem; }
+    .feed { background: var(--feed); color: #284c3b; }
+    .diaper { background: var(--diaper); color: #673f26; }
+    .sleep { background: var(--sleep); color: #4c3c64; }
+    .action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .65rem;
+      min-height: 5rem;
+      padding: .65rem .25rem;
+      border: 1px solid #222e2410;
+      border-radius: 1.1rem;
+      font-weight: 700;
+      font-size: 1.075rem;
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .action:active { transform: scale(.96); filter: brightness(.95); }
+    .action-icon { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: .75rem; background: #ffffff80; font-size: 1.25rem; }
+    .history-heading { margin: 0 .125rem .7rem; }
+    h2 { font-size: 1.2rem; }
+    .entry-total { color: var(--muted); font-size: .875rem; }
+    .history-list { list-style: none; margin: 0; padding: .1rem .8rem; border: 1px solid #eae5da; border-radius: 1.2rem; background: #fffefa; }
+    .entry { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .65rem; min-height: 3.5rem; }
+    .entry + .entry { border-top: 1px solid #eeebe2; }
+    .entry-icon { display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border-radius: .7rem; font-size: 1.05rem; }
+    .entry-name { font-size: 1rem; font-weight: 650; }
+    .sample { display: inline-block; margin-left: .45rem; color: var(--muted); font-size: .75rem; font-weight: 400; }
+    .entry-time { color: #3e5045; font-size: .95rem; font-variant-numeric: tabular-nums; }
+    .delete { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: .65rem; background: transparent; color: #606c62; font-size: 1.35rem; }
+    .delete:active { background: #f1ebe5; color: #8d3a31; }
+    .empty { padding: 1.55rem 1rem; border: 1px dashed #dcd6c9; border-radius: 1.2rem; text-align: center; color: var(--muted); }
+    .storage-error { margin-top: 1rem; padding: .75rem 1rem; border-radius: .75rem; background: #fae8de; color: #733b2e; font-size: .9rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    [hidden] { display: none !important; }
+    @media (hover: hover) { .action:hover { filter: brightness(.975); } .delete:hover { background: #f1ebe5; color: #8d3a31; } }
+    @media (max-width: 35rem) {
+      .app { padding-top: max(1.15rem, calc(env(safe-area-inset-top) + .6rem)); }
+      .masthead { margin-bottom: 1rem; }
+      .brand { gap: .5rem; }
+      .brand-mark { width: 2.45rem; height: 2.45rem; border-radius: .8rem; font-size: 1.22rem; }
+      .summary { min-height: 9.9rem; padding: 1.15rem; gap: .55rem; border-radius: 1.25rem; }
+      .count { padding: .55rem .6rem; }
+      .count .summary-label { font-size: .8rem; }
+      .actions { gap: .5rem; margin: .85rem 0 1.35rem; }
+      .action { min-height: 5.1rem; flex-direction: column; gap: .25rem; font-size: .95rem; }
+      .action-icon { width: 1.95rem; height: 1.95rem; }
+      .history-list { padding: .08rem .6rem; }
+      .entry { gap: .45rem; }
+    }
+    @media (max-width: 21rem) { .date { font-size: .8rem; } .summary { padding: .9rem; } .elapsed { font-size: 1.65rem; } }
+    @media (prefers-reduced-motion: reduce) { .action { transition: none; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="masthead">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">🍼</span><h1>宝宝喂奶记录</h1></div>
+      <time class="date" id="today"></time>
+    </header>
+
+    <section class="summary" aria-label="喂奶概况">
+      <div>
+        <p class="summary-label">距上次喂奶</p>
+        <p class="elapsed" id="elapsed">—</p>
+        <p class="last-feed" id="last-feed"></p>
+      </div>
+      <div class="count">
+        <p class="summary-label">今日喂奶</p>
+        <p class="count-value"><span id="feed-count">0</span><small>次</small></p>
+      </div>
+    </section>
+
+    <div class="actions" role="group" aria-label="添加记录">
+      <button type="button" class="action feed" data-type="feed"><span class="action-icon" aria-hidden="true">🍼</span>喂奶</button>
+      <button type="button" class="action diaper" data-type="diaper"><span class="action-icon" aria-hidden="true">🧷</span>换尿布</button>
+      <button type="button" class="action sleep" data-type="sleep"><span class="action-icon" aria-hidden="true">🌙</span>睡觉</button>
+    </div>
+
+    <section aria-labelledby="history-title">
+      <header class="history-heading"><h2 id="history-title">今日记录</h2><p class="entry-total" id="entry-total"></p></header>
+      <ol class="history-list" id="history"></ol>
+      <p class="empty" id="empty" hidden>今天还没有记录</p>
+    </section>
+    <p class="storage-error" id="storage-error" role="alert" hidden>当前无法在此浏览器中保存记录，刷新后可能丢失。</p>
+    <p class="sr-only" id="status" role="status"></p>
+  </main>
+
+  <template id="entry-template">
+    <li class="entry">
+      <span class="entry-icon" aria-hidden="true"></span>
+      <span class="entry-name"><span class="entry-label"></span><span class="sample" hidden>示例</span></span>
+      <time class="entry-time"></time>
+      <button class="delete" type="button">×</button>
+    </li>
+  </template>
+
+  <script>
+    'use strict';
+
+    const storageKey = 'baby-care.records.v1';
+    const types = {
+      feed: { label: '喂奶', icon: '🍼' },
+      diaper: { label: '换尿布', icon: '🧷' },
+      sleep: { label: '睡觉', icon: '🌙' },
+    };
+    const byId = (id) => document.getElementById(id);
+    const elapsed = byId('elapsed');
+    const history = byId('history');
+    const status = byId('status');
+    const storageError = byId('storage-error');
+    const timeFormat = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const dateFormat = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric' });
+
+    function localDateKey(date) {
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${date.getFullYear()}-${month}-${day}`;
+    }
+
+    function exampleRecords(now) {
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const available = now.getTime() - midnight;
+      const examples = [['feed', 55], ['diaper', 85], ['sleep', 135], ['feed', 185]];
+      return examples.map(([type, minutesAgo], index) => ({
+        id: `sample-${index}`,
+        type,
+        timestamp: now.getTime() - Math.min(minutesAgo * 60_000, Math.floor(available * minutesAgo / 210)),
+        sample: true,
+      }));
+    }
+
+    function readRecords() {
+      const value = localStorage.getItem(storageKey);
+      if (value === null) return null;
+      const saved = JSON.parse(value);
+      if (!Array.isArray(saved)) throw new Error('Invalid records');
+      return saved.filter((record) => record && typeof record.id === 'string' &&
+        Object.hasOwn(types, record.type) && Number.isFinite(record.timestamp));
+    }
+
+    function saveRecords(nextRecords) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(nextRecords));
+        storageError.hidden = true;
+      } catch {
+        storageError.hidden = false;
+      }
+    }
+
+    function initialRecords() {
+      try {
+        const saved = readRecords();
+        if (saved !== null) return saved;
+      } catch {
+        storageError.hidden = false;
+        return exampleRecords(new Date());
+      }
+      const examples = exampleRecords(new Date());
+      saveRecords(examples);
+      return examples;
+    }
+
+    let records = initialRecords();
+    let renderedDate = '';
+    let latestFeed;
+    let elapsedLabel = '';
+
+    function updateElapsed(now) {
+      let parts = [];
+      let message = '暂无记录';
+      if (latestFeed) {
+        const minutes = Math.max(0, Math.floor((now.getTime() - latestFeed.timestamp) / 60_000));
+        const days = Math.floor(minutes / 1440);
+        const hours = Math.floor((minutes % 1440) / 60);
+        if (days) parts.push([days, '天'], [hours, '小时']);
+        else if (hours) parts.push([hours, '小时'], [minutes % 60, '分']);
+        else if (minutes) parts.push([minutes, '分钟']);
+        else message = '刚刚';
+      }
+
+      const label = parts.length ? parts.map(([value, unit]) => `${value}${unit}`).join(' ') : message;
+      if (label === elapsedLabel) return;
+      elapsedLabel = label;
+      if (!parts.length) {
+        const text = document.createElement('span');
+        text.className = 'elapsed-message';
+        text.textContent = message;
+        elapsed.replaceChildren(text);
+        return;
+      }
+
+      elapsed.replaceChildren(...parts.map(([value, unit]) => {
+        const part = document.createElement('span');
+        part.className = 'elapsed-part';
+        part.textContent = value;
+        const suffix = document.createElement('span');
+        suffix.className = 'elapsed-unit';
+        suffix.textContent = unit;
+        part.append(suffix);
+        return part;
+      }));
+    }
+
+    function makeEntry(record) {
+      const row = byId('entry-template').content.firstElementChild.cloneNode(true);
+      const type = types[record.type];
+      const icon = row.querySelector('.entry-icon');
+      const time = row.querySelector('time');
+      const remove = row.querySelector('button');
+      const date = new Date(record.timestamp);
+      icon.classList.add(record.type);
+      icon.textContent = type.icon;
+      row.querySelector('.entry-label').textContent = type.label;
+      row.querySelector('.sample').hidden = !record.sample;
+      time.dateTime = date.toISOString();
+      time.textContent = timeFormat.format(date);
+      remove.dataset.id = record.id;
+      remove.setAttribute('aria-label', `删除 ${time.textContent} 的${type.label}记录`);
+      return row;
+    }
+
+    function render(now = new Date()) {
+      renderedDate = localDateKey(now);
+      const today = byId('today');
+      today.dateTime = renderedDate;
+      today.textContent = dateFormat.format(now);
+      const sorted = records.slice().sort((left, right) => right.timestamp - left.timestamp);
+      const todaysRecords = sorted.filter((record) => localDateKey(new Date(record.timestamp)) === renderedDate);
+      latestFeed = sorted.find((record) => record.type === 'feed');
+      byId('feed-count').textContent = todaysRecords.filter((record) => record.type === 'feed').length;
+      const lastFeed = byId('last-feed');
+      if (latestFeed) {
+        const date = new Date(latestFeed.timestamp);
+        const day = localDateKey(date) === renderedDate ? '今天' : dateFormat.format(date);
+        lastFeed.textContent = `${day} ${timeFormat.format(date)}`;
+      } else {
+        lastFeed.textContent = '';
+      }
+      byId('entry-total').textContent = `${todaysRecords.length} 条`;
+      history.replaceChildren(...todaysRecords.map(makeEntry));
+      history.hidden = todaysRecords.length === 0;
+      byId('empty').hidden = todaysRecords.length !== 0;
+      updateElapsed(now);
+    }
+
+    function changeRecords(change) {
+      // Read the saved list before mutating it so a tab restored from the background uses current data.
+      if (storageError.hidden) {
+        try { records = readRecords() ?? records; } catch { storageError.hidden = false; }
+      }
+      records = change(records);
+      saveRecords(records);
+      render();
+    }
+
+    document.querySelectorAll('.action').forEach((button) => {
+      button.addEventListener('click', () => {
+        const { type } = button.dataset;
+        const timestamp = Date.now();
+        const id = globalThis.crypto?.randomUUID?.() ?? `${timestamp}-${Math.random().toString(36).slice(2)}`;
+        changeRecords((previous) => [{ id, type, timestamp }, ...previous]);
+        status.textContent = `已添加${types[type].label}记录，${timeFormat.format(timestamp)}`;
+      });
+    });
+
+    history.addEventListener('click', (event) => {
+      const button = event.target.closest('.delete');
+      if (!button) return;
+      const next = button.closest('.entry').nextElementSibling ?? button.closest('.entry').previousElementSibling;
+      const nextId = next?.querySelector('button').dataset.id;
+      const { id } = button.dataset;
+      changeRecords((previous) => previous.filter((record) => record.id !== id));
+      const nextButton = Array.from(history.querySelectorAll('.delete')).find((item) => item.dataset.id === nextId);
+      (nextButton ?? document.querySelector('.action')).focus();
+      status.textContent = '已删除记录';
+    });
+
+    function refreshClock() {
+      const now = new Date();
+      if (localDateKey(now) !== renderedDate) render(now);
+      else updateElapsed(now);
+    }
+
+    window.addEventListener('storage', (event) => {
+      if (event.key !== storageKey) return;
+      try {
+        records = readRecords() ?? [];
+        storageError.hidden = true;
+        render();
+      } catch { storageError.hidden = false; }
+    });
+    window.addEventListener('pageshow', refreshClock);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refreshClock();
+    });
+    render();
+    setInterval(refreshClock, 1000);
+  </script>
+</body>
+</html>
